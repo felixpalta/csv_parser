@@ -7,6 +7,22 @@ enum { MAX_FIELDS = 20 };
 static char linebuf[200];
 static char *fields[MAX_FIELDS];
 
+/* Removes enclosing quote marks, e.g. "test" .*/
+/* Also removes single leading quote mark, e.g. "test. */
+char *unquote(char *s)
+{
+    if (s == NULL || strlen(s) < 2)
+        return s;
+    if (s[0] == '"')
+    {
+        size_t penultimate_index = strlen(s) - 1;
+        if (s[penultimate_index] == '"')
+            s[penultimate_index] = '\0';
+        ++s;
+    }
+    return s;
+}
+
 /* returns number of fields parsed in line */
 int csv_getline(FILE *fin)
 {
@@ -19,7 +35,7 @@ int csv_getline(FILE *fin)
     p = strtok(linebuf, ",\n\r");
     while (p != NULL && nfields < MAX_FIELDS)
     {
-        fields[nfields++] = p;
+        fields[nfields++] = unquote(p);
         p = strtok(NULL, ",\n\r");
     }
 
@@ -48,7 +64,12 @@ int main(int argc, char *argv[])
 
     while ((nf = csv_getline(f)) != -1)
         for (i = 0; i < nf; ++i)
-            printf("field[%d] = %s\n", i, fields[i]);
+        {
+            const char *s = fields[i];
+            if (s == NULL)
+                error("Input error: NULL pointer as string argument\n", 3);
+            printf("field[%d] = '%s'\n", i, s);
+        }
 
     return 0;
 }
